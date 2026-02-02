@@ -198,3 +198,10 @@ autocmd FileType python,c,cpp,java,javascript,typescript,lua setlocal omnifunc=v
 " Highlight references when cursor is on a symbol
 autocmd CursorHold * silent! lua vim.lsp.buf.document_highlight()
 autocmd CursorMoved * silent! lua vim.lsp.buf.clear_references()
+
+" Enhanced type checking shortcuts
+nnoremap <silent> <leader>t <cmd>lua vim.lsp.buf.hover()<CR>
+inoremap <silent> <C-t> <cmd>lua vim.lsp.buf.hover()<CR>
+
+" Show type in status line
+autocmd CursorHold * silent! lua vim.lsp.buf.hover({ focusable = false })
