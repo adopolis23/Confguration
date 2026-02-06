@@ -40,8 +40,12 @@ Plug 'L3MON4D3/LuaSnip'
 Plug 'saadparwaiz1/cmp_luasnip'
 
 Plug 'frazrepo/vim-rainbow'
-
 let g:rainbow_active = 1 " Enable globally
+
+Plug 'mfussenegger/nvim-dap'
+Plug 'rcarriga/nvim-dap-ui'
+Plug 'theHamsta/nvim-dap-virtual-text'
+Plug 'nvim-telescope/telescope-dap.nvim'
 
 call plug#end()
 
@@ -93,11 +97,11 @@ end
 local capabilities = cmp_nvim_lsp.default_capabilities()
 
 -- Auto-format on save (optional but useful)
-vim.api.nvim_create_autocmd("BufWritePre", {
-  callback = function()
-    vim.lsp.buf.format({ async = false })
-  end,
-})
+--vim.api.nvim_create_autocmd("BufWritePre", {
+  --callback = function()
+    --vim.lsp.buf.format({ async = false })
+  --end,
+--})
 
 -- Show diagnostics in hover window
 vim.diagnostic.config({
@@ -187,21 +191,168 @@ cmp.setup({
 
 -- Set up luasnip
 require("luasnip.loaders.from_vscode").lazy_load()
+
+-- DAP Configuration
+local dap = require('dap')
+
+-- Configure GDB adapter
+dap.adapters.gdb = {
+  type = "executable",
+  command = "gdb",
+  args = { "-i", "dap" }
+}
+
+-- C Debug Configurations
+dap.configurations.c = {
+  {
+    name = "Launch (GDB)",
+    type = "gdb",
+    request = "launch",
+    program = function()
+      -- Try to find the executable automatically
+      local filename = vim.fn.expand('%:p:r')  -- Remove extension
+      
+      -- Check for common executable names
+      if vim.fn.executable(filename) == 1 then
+        return filename
+      elseif vim.fn.executable(filename .. '.out') == 1 then
+        return filename .. '.out'
+      elseif vim.fn.executable(filename .. '.exe') == 1 then
+        return filename .. '.exe'
+      elseif vim.fn.executable('a.out') == 1 then
+        return 'a.out'
+      elseif vim.fn.executable('./main') == 1 then
+        return './main'
+      else
+        -- Ask user if not found
+        return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+      end
+    end,
+    cwd = "${workspaceFolder}",
+    stopAtBeginningOfMainSubprogram = false,
+    args = {},
+    runInTerminal = false,
+  },
+  {
+    name = "Launch with args",
+    type = "gdb",
+    request = "launch",
+    program = function()
+      return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+    end,
+    args = function()
+      local input = vim.fn.input('Program arguments: ')
+      return vim.split(input, " ", true)
+    end,
+  },
+  {
+    name = "Attach to process",
+    type = "gdb",
+    request = "attach",
+    processId = function()
+      return vim.fn.input('Process ID: ', '')
+    end,
+  }
+}
+
+-- Copy configurations for C++ (same as C)
+dap.configurations.cpp = dap.configurations.c
+
+-- Optional: DAP UI setup (if you installed nvim-dap-ui)
+local dapui_ok, dapui = pcall(require, 'dapui')
+if dapui_ok then
+  dapui.setup()
+  
+  -- Auto open/close UI
+  dap.listeners.after.event_initialized["dapui_config"] = function()
+    dapui.open()
+  end
+  dap.listeners.before.event_terminated["dapui_config"] = function()
+    dapui.close()
+  end
+  dap.listeners.before.event_exited["dapui_config"] = function()
+    dapui.close()
+  end
+end
+
+-- Optional: Virtual text (if you installed nvim-dap-virtual-text)
+local virt_ok, virt = pcall(require, 'nvim-dap-virtual-text')
+if virt_ok then
+  virt.setup()
+end
+
+print("DAP configured for C/C++ debugging")
 EOF
 
+
 " ----------------------------
-" Additional Settings (ADD THIS)
+" Debugging Commands & Mappings
 " ----------------------------
-" Make sure LSP is working
-autocmd FileType python,c,cpp,java,javascript,typescript,lua setlocal omnifunc=v:lua.vim.lsp.omnifunc
+" Start debugging with F5
+nnoremap <silent> <F5> :lua require('dap').continue()<CR>
 
-" Highlight references when cursor is on a symbol
-autocmd CursorHold * silent! lua vim.lsp.buf.document_highlight()
-autocmd CursorMoved * silent! lua vim.lsp.buf.clear_references()
+" Set breakpoint with F9
+nnoremap <silent> <F9> :lua require('dap').toggle_breakpoint()<CR>
 
-" Enhanced type checking shortcuts
-nnoremap <silent> <leader>t <cmd>lua vim.lsp.buf.hover()<CR>
-inoremap <silent> <C-t> <cmd>lua vim.lsp.buf.hover()<CR>
+" Step commands
+nnoremap <silent> <F10> :lua require('dap').step_over()<CR>
+nnoremap <silent> <F11> :lua require('dap').step_into()<CR>
+nnoremap <silent> <F12> :lua require('dap').step_out()<CR>
 
-" Show type in status line
-autocmd CursorHold * silent! lua vim.lsp.buf.hover({ focusable = false })
+" Debug commands
+nnoremap <leader>dc :lua require('dap').continue()<CR>
+nnoremap <leader>db :lua require('dap').toggle_breakpoint()<CR>
+nnoremap <leader>dB :lua require('dap').set_breakpoint(vim.fn.input('Condition: '))<CR>
+nnoremap <leader>dr :lua require('dap').repl.open()<CR>
+nnoremap <leader>dt :lua require('dap').terminate()<CR>
+nnoremap <leader>dp :lua require('dap').pause()<CR>
+
+" Quick debug current file
+nnoremap <leader>dd :lua
+  \ local dap = require('dap')
+  \ local config = {
+  \   name = 'Debug Current',
+  \   type = 'gdb',
+  \   request = 'launch',
+  \   program = vim.fn.expand('%:p:r'),
+  \   cwd = vim.fn.getcwd(),
+  \   args = {},
+  \ }
+  \ dap.run(config)
+
+" Compile and debug command
+command! -nargs=* CDebug call CompileAndDebug(<q-args>)
+function! CompileAndDebug(args)
+  let source = expand('%:p')
+  let output = expand('%:p:r')
+  
+  " Compile with debug symbols
+  echo "Compiling with debug symbols..."
+  let compile_cmd = 'gcc -g -o ' . shellescape(output) . ' ' . shellescape(source) . ' ' . a:args
+  let result = system(compile_cmd)
+  
+  if v:shell_error != 0
+    echo "Compilation failed:"
+    echo result
+    return
+  endif
+  
+  echo "Compilation successful. Starting debugger..."
+  
+  " Start debugging
+  lua << EOF
+  local dap = require('dap')
+  dap.run({
+    name = 'Debug',
+    type = 'gdb',
+    request = 'launch',
+    program = vim.fn.expand('%:p:r'),
+    cwd = vim.fn.getcwd(),
+    args = {},
+  })
+EOF
+endfunction
+
+
+
+
