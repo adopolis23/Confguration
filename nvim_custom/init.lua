@@ -1,0 +1,2 @@
+require("brandonlua")
+print("Hello")
