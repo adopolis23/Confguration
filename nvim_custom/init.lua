@@ -1,2 +1,1 @@
 require("brandonlua")
-print("Hello")
