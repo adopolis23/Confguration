@@ -45,4 +45,8 @@ return require('packer').startup(function(use)
 	}
   }
 
+  use {
+    'preservim/nerdtree'
+  }
+
 end)
