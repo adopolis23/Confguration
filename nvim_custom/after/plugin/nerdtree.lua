@@ -15,7 +15,7 @@ g.NERDTreeChDirMode = 2  -- Change CWD to NERDTree root
 
 -- Key mappings
 vim.api.nvim_set_keymap('n', '<leader>n', ':NERDTreeToggle<CR>', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<leader>nf', ':NERDTreeFind<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>f', ':NERDTreeFind<CR>', { noremap = true, silent = true })
 
 -- Auto close NERDTree when it's the last window
 vim.cmd([[

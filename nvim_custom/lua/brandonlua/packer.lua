@@ -49,4 +49,29 @@ return require('packer').startup(function(use)
     'preservim/nerdtree'
   }
 
+
+  use({
+    "mfussenegger/nvim-dap",
+  })
+
+use({
+  "rcarriga/nvim-dap-ui",
+  requires = { "mfussenegger/nvim-dap", "nvim-neotest/nvim-nio" },
+})
+
+use({
+  "theHamsta/nvim-dap-virtual-text",
+  requires = { "mfussenegger/nvim-dap" },
+})
+
+-- Optional: For better debugging experience with Mason
+use({
+  "jay-babu/mason-nvim-dap.nvim",
+  requires = {
+    "williamboman/mason.nvim",
+    "mfussenegger/nvim-dap",
+  },
+})
+
+
 end)
