@@ -18,6 +18,28 @@ return require('packer').startup(function(use)
 	end
   }
 
+  use {
+  "catppuccin/nvim",
+  name = "catppuccin",
+  priority = 999,  -- Load before other plugins
+  config = function()
+    vim.cmd.colorscheme("catppuccin-nvim")
+  end
+}
+
+  use {
+      "hyperb1iss/silkcircuit",
+      as = "silk",
+      lazy = false,
+      priority = 1000,
+      config = function()
+        require("silkcircuit").setup({
+          variant = "soft", -- or "neon", "soft", etc.
+        })
+        vim.cmd.colorscheme("silkcircuit")
+      end,
+  }
+
   use ('nvim-treesitter/nvim-treesitter', {run = ':TSUpdate'})
   
   use ('theprimeagen/harpoon')
